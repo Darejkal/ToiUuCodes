@@ -13,22 +13,8 @@ class Matrix{
     }
     public:
     double dimX,dimY;
-    Matrix(const vector<vector<double>> value){
-        this->a =value;
-        this->dimX=this->a.size();
-        this->dimY=this->a[0].size();
-    }
-    // Matrix(const double dimX,const double dimY){
-    //     this->dimX=dimX;
-    //     this->dimY=dimY;
-    //     this->a=vector<vector<double>>(dimX,vector<double>(dimY,0));
-    // }
-    Matrix(const double value){
-        // Matrix(vector<vector<double>>(1,vector<double>(1,value)));
-        a=vector<vector<double>>(1,vector<double>(1,value));
-        this->dimX=a.size();
-        this->dimY=a[0].size();
-    }
+    Matrix(const vector<vector<double>> value): a(value), dimX(a.size()),dimY(a[0].size()){}
+    Matrix(const double value):a(vector<vector<double>>(1,vector<double>(1,value))), dimX(a.size()),dimY(a[0].size()){}
     static Matrix transpose(const Matrix x){
         Matrix a(vector<vector<double>>(x.dimY,vector<double>(x.dimX)));
         for(int i=0; i<x.dimX;i++){
@@ -162,6 +148,13 @@ class Matrix{
     }
 };
 typedef Matrix(*Function)(Matrix);
+// class MatrixFunction{
+//     public:
+//     Function func;
+//     Function gradient;
+//     Function hessian;
+//     MatrixFunction(Function func,Function gradient,Function hessian):func(func),gradient(gradient),hessian(hessian){}
+// };
 class GradientDescent{
     Function func;
     Function gradient;
@@ -197,6 +190,7 @@ class GradientDescent{
         return diff>precision?backtrack(y,m,alpha,precision):y;
     }
 };
+
 int main(){
     // vector<vector<double>> a{{1,2},{3,4}};
     // Matrix x(a);
@@ -205,9 +199,9 @@ int main(){
     // Matrix::printMatrix(x*2);
     // return 0;
     GradientDescent g(
-        [](Matrix x)->Matrix{return (Matrix)pow((x[0][0]-4),2)+pow((x[0][1]-6),2);},
-        [](Matrix x)->Matrix{return (Matrix)vector<vector<double>>{{2*(x[0][0]-4),2*(x[0][1]-6)}};},
-        [](Matrix x)->Matrix{return (Matrix)4;},
+        [](Matrix x)->Matrix{return pow((x[0][0]-4),2)+pow((x[0][1]-6),2);},
+        [](Matrix x)->Matrix{return vector<vector<double>>{{2*(x[0][0]-4),2*(x[0][1]-6)}};},
+        [](Matrix x)->Matrix{return 4;},
         1
     );
     try{
