@@ -36,7 +36,51 @@ class Matrix{
         // this->dimY=a[0].size();
         // this->a=a;
     }
-
+    Matrix minor(int m,int n){
+        if(m>=dimX||n>=dimY||m<0||n<0) return *this;
+        int i=0,j=0;
+        vector<vector<double>> a(m-1,vector<double>{});
+        while(j<this->dimY){
+            if(j==n) continue;
+            while(i<this->dimX){
+                if(m>i){
+                    a[i].push_back(a[i][j]);
+                }
+                if(m<i){
+                    a[i].push_back(a[i-1][j]);
+                }
+                i++;
+            }
+            j++;
+        }
+        return a;
+    }
+    Matrix minor(int m,int n)const{
+        if(m<0||n<0||m>=dimX||n>=dimY) return *this;
+        int j=0;
+        vector<vector<double>> a(dimX-1,vector<double>{});
+        while(j<this->dimY){
+            if(j==n){
+                j++;
+                continue;
+            } 
+            int i=0;
+            while(i<this->dimX){
+                if(m>i){
+                    a[i].push_back(this->a[i][j]);
+                }
+                if(m<i){
+                    a[i-1].push_back(this->a[i][j]);
+                }
+                i++;
+            }
+            j++;
+        }
+        return a;
+    }
+    static bool isSameDimension(const Matrix& x,const Matrix& y){
+        return x.dimX==y.dimX&&x.dimY==y.dimY;
+    }
     static double norm(const Matrix& x){
         return sqrt(normDoubled(x));
     }
@@ -46,6 +90,21 @@ class Matrix{
             for(auto j:i){
                 sum+=j;
             }
+        }
+        return sum;
+    }
+    bool isSquare()const {
+        return dimX==dimY;
+    }
+    static double det(const Matrix& x){
+        if(x.dimX==0||x.dimY==0) return 0;
+        if(x.dimX==1&&x.dimY==1){
+            return x[0][0];
+        }
+        if(!x.isSquare()) throw invalid_argument("Matrix: Trying to get determinant of non square matrix");
+        int sum=0;
+        for(int i=0;i<x.dimY;i++){
+            sum+=x[0][i]*(i%2==1?-1:1)*det(x.minor(0,i));
         }
         return sum;
     }
@@ -75,15 +134,15 @@ class Matrix{
     }
     const vector<double>& operator[](const double n)const{
         if(n<0){
-            throw out_of_range("Index is larger than matrix dimension.");
+            throw out_of_range("Trying to access a negative index.");
         }
         if(n>=a.size()){
-            throw invalid_argument("Trying to access a negative index.");
+            throw invalid_argument("Index is larger than matrix dimension.");
         }
         return a[n];
     }
     friend Matrix operator+(Matrix l,const Matrix& r){
-        if(l.dimX==r.dimX&&l.dimY==r.dimY){
+        if(isSameDimension(l,r)){
             for(int x=0;x<l.dimX;x++){
                 for(int y=0;y<l.dimY;y++){
                     l[x][y]+= r[x][y];
@@ -148,13 +207,21 @@ class Matrix{
     }
 };
 typedef Matrix(*Function)(Matrix);
-// class MatrixFunction{
-//     public:
-//     Function func;
-//     Function gradient;
-//     Function hessian;
-//     MatrixFunction(Function func,Function gradient,Function hessian):func(func),gradient(gradient),hessian(hessian){}
-// };
+class MatrixFunction{
+    public:
+    Function func;
+    Function gradient;
+    Function hessian;
+    MatrixFunction(Function func,Function gradient,Function hessian):func(func),gradient(gradient),hessian(hessian){}
+};
+class Descent{
+    MatrixFunction func;
+    Descent(MatrixFunction func):func(func){}
+    bool isDescentDirection(Matrix x,Matrix d){
+        if(!Matrix::isSameDimension(x,d)) throw invalid_argument("Descent: Descent direction is not of the same dimension as x");
+        return Matrix::det(Matrix::transpose(x)*d)<0;
+    }
+};
 class GradientDescent{
     Function func;
     Function gradient;
@@ -172,7 +239,7 @@ class GradientDescent{
         Matrix df=gradient(x);
         double hDoubled=Matrix::normDoubled(hessian(x));
         double expected=m*hDoubled;
-
+        throw logic_error("Not implemented yet");
         return 0;
     }
     Matrix backtrack(Matrix x, double m,double alpha, double precision){
@@ -192,21 +259,21 @@ class GradientDescent{
 };
 
 int main(){
-    // vector<vector<double>> a{{1,2},{3,4}};
-    // Matrix x(a);
-    // Matrix::printMatrix((Matrix)1);
+    vector<vector<double>> a{{1,2},{3,4}};
+    Matrix x(a);
+    Matrix::printMatrix(Matrix::det(x));
     // Matrix::printMatrix(2*x);
     // Matrix::printMatrix(x*2);
     // return 0;
-    GradientDescent g(
-        [](Matrix x)->Matrix{return pow((x[0][0]-4),2)+pow((x[0][1]-6),2);},
-        [](Matrix x)->Matrix{return vector<vector<double>>{{2*(x[0][0]-4),2*(x[0][1]-6)}};},
-        [](Matrix x)->Matrix{return 4;},
-        1
-    );
-    try{
-    Matrix::printMatrix(g.backtrack(Matrix(vector<vector<double>>(1,vector<double>{-1,-12})),0.5,0.75,0.1));
-    } catch(exception e){
-        cout<<e.what();
-    }
+    // GradientDescent g(
+    //     [](Matrix x)->Matrix{return pow((x[0][0]-4),2)+pow((x[0][1]-6),2);},
+    //     [](Matrix x)->Matrix{return vector<vector<double>>{{2*(x[0][0]-4),2*(x[0][1]-6)}};},
+    //     [](Matrix x)->Matrix{return 4;},
+    //     1
+    // );
+    // try{
+    // Matrix::printMatrix(g.backtrack(Matrix(vector<vector<double>>(1,vector<double>{-1.333,-11.2312})),0.5,0.75,0.1));
+    // } catch(exception e){
+    //     cout<<e.what();
+    // }
 }
