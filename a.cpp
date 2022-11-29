@@ -36,25 +36,6 @@ class Matrix{
         // this->dimY=a[0].size();
         // this->a=a;
     }
-    Matrix minor(int m,int n){
-        if(m>=dimX||n>=dimY||m<0||n<0) return *this;
-        int i=0,j=0;
-        vector<vector<double>> a(m-1,vector<double>{});
-        while(j<this->dimY){
-            if(j==n) continue;
-            while(i<this->dimX){
-                if(m>i){
-                    a[i].push_back(a[i][j]);
-                }
-                if(m<i){
-                    a[i].push_back(a[i-1][j]);
-                }
-                i++;
-            }
-            j++;
-        }
-        return a;
-    }
     Matrix minor(int m,int n)const{
         if(m<0||n<0||m>=dimX||n>=dimY) return *this;
         int j=0;
@@ -93,6 +74,25 @@ class Matrix{
         }
         return sum;
     }
+    static Matrix inverse(Matrix x){
+        if(!x.isSquare()) throw invalid_argument("Matrix: Trying to get inverse of nonsquare matrix");
+        vector<vector<double>> a(x.dimX,vector<double>{});
+        double dt=Matrix::det(x);
+        for(int i=0;i<x.dimX;i++){
+            for(int j=0;j<x.dimX;j++){
+                a[i].push_back((i+j%2==1?-1:1)*Matrix::det(x.minor(i,j))/dt);
+            }
+        }
+        return transpose((Matrix)a);
+    }
+    static void printMatrix(const Matrix& x){
+        for(auto i:x){
+            for(auto j:i){
+                cout<<j<<" ";
+            }
+            cout<<"\n";
+        }
+    }
     bool isSquare()const {
         return dimX==dimY;
     }
@@ -123,14 +123,6 @@ class Matrix{
         this->dimX=x.dimX;
         this->dimY=x.dimX;
         return 0;
-    }
-    static void printMatrix(const Matrix& x){
-        for(auto i:x){
-            for(auto j:i){
-                cout<<j<<" ";
-            }
-            cout<<"\n";
-        }
     }
     vector<double>& operator[](const double n){
         if(n<0){
@@ -195,6 +187,14 @@ class Matrix{
     }
     friend Matrix operator*(const Matrix x,const double n){
         return n*x;
+    }
+    friend Matrix operator/(Matrix x, const double n){
+        for(auto& i:x){
+            for(auto& j:i){
+                j/=n;
+            }
+        }
+        return x;
     }
     vector<std::vector<double>>::iterator begin(){
         return this->a.begin();
@@ -262,12 +262,21 @@ class GradientDescent{
         }
         return diff>precision?backtrack(y,m,alpha,precision):y;
     }
+    Matrix pureNewtonMethod(Matrix x,double precision){
+        Matrix df=innerFunction.gradient(x);
+        if(Matrix::norm(df)<precision) return x;
+        Matrix Hf=innerFunction.hessian(x);
+        Matrix x1=x-Matrix::inverse(Hf)*df;
+        return pureNewtonMethod(x1,precision);
+    }
 };
 
 int main(){
     // vector<vector<double>> a{{1,2},{3,4}};
     // Matrix x(a);
-    // Matrix::printMatrix(-x);
+    // Matrix::printMatrix(Matrix::inverse(a));
+    // Matrix::printMatrix(Matrix::inverse(a)*a);
+    // Matrix::printMatrix(a*Matrix::inverse(a));
     // return 0;
     // Matrix::printMatrix(2*x);
     // Matrix::printMatrix(x*2);
@@ -281,6 +290,7 @@ int main(){
     try{
     Matrix::printMatrix(g.backtrack(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.5,0.75,0.1));
     Matrix::printMatrix(g.exactLineSearch(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.1));
+    Matrix::printMatrix(g.pureNewtonMethod(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.5));
     } catch(const exception& e){
         cout<<e.what();
     }
