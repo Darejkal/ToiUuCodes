@@ -108,6 +108,16 @@ class Matrix{
         }
         return sum;
     }
+    bool isZero() const{
+        for(auto i:this->a){
+            for(auto j:i){
+                if(j!=0){
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
     double operator=(const Matrix x){
         this->a=x.a;
         this->dimX=x.dimX;
@@ -153,18 +163,11 @@ class Matrix{
             throw invalid_argument("Trying to add together matrices of different dimensions.");
         }
     }
-    friend Matrix operator-(Matrix l,const Matrix& r){
-        return l+(-1)*r;
-        // if(l.dimX==r.dimX&&l.dimY==r.dimY){
-        //     for(int x=0;x<l.dimX;x++){
-        //         for(int y=0;y<l.dimY;y++){
-        //             l[x][y]-= r[x][y];
-        //         }
-        //     }
-        //     return l;
-        // } else {
-        //     throw invalid_argument("Trying to add together matrices of different dimensions.");
-        // }
+    friend Matrix operator-(Matrix l,const Matrix& r) {
+        return l+(-r);
+    }
+    Matrix operator-() const{
+        return (-1)*(*this);
     }
     friend Matrix operator*(const Matrix& l,const Matrix& r){
         //TODO: Replace this with more effective solutions
@@ -206,51 +209,54 @@ class Matrix{
         return this->a.end();
     }
 };
-typedef Matrix(*Function)(Matrix);
-class MatrixFunction{
+template <class T>
+class Func{
     public:
+    typedef T(*Function)(T);
     Function func;
     Function gradient;
     Function hessian;
-    MatrixFunction(Function func,Function gradient,Function hessian):func(func),gradient(gradient),hessian(hessian){}
+    Func(Function func,Function gradient,Function hessian):func(func),gradient(gradient),hessian(hessian){}
 };
 class Descent{
-    MatrixFunction func;
-    Descent(MatrixFunction func):func(func){}
+    Func<Matrix> func;
+    Descent(Func<Matrix> func):func(func){}
     bool isDescentDirection(Matrix x,Matrix d){
         if(!Matrix::isSameDimension(x,d)) throw invalid_argument("Descent: Descent direction is not of the same dimension as x");
         return Matrix::det(Matrix::transpose(x)*d)<0;
     }
 };
 class GradientDescent{
-    Function func;
-    Function gradient;
-    Function hessian;
-    double dim=0;
-    public:
-    GradientDescent(Function func,Function gradient,Function hessian,double dim){
-        this->func=func;
-        this->gradient=gradient;
-        this->hessian=hessian;
-        this->dim=dim;
+    Func<Matrix> innerFunction;
+    //WARNING: This might end up being not the correct minimizer t, but that's the limitation of Exact Line Search.
+    double exactLineSearch_newtonMethod(Matrix x,double t, Matrix d, double precision){
+        Matrix df=-Matrix::transpose(innerFunction.gradient(x-t*d))*d;
+        if(Matrix::norm(df)<precision) {
+            if(t<0) return 0;
+            return t;
+        }
+        else {
+            return exactLineSearch_newtonMethod(x,t-Matrix::det(innerFunction.func(x-t*d))/Matrix::det(df),d,precision);
+        }
     }
-
-    double exactLineSearch(Matrix x,double m, double alpha,double precision){
-        Matrix df=gradient(x);
-        double hDoubled=Matrix::normDoubled(hessian(x));
-        double expected=m*hDoubled;
-        throw logic_error("Not implemented yet");
-        return 0;
+    public:
+    GradientDescent(Func<Matrix> func): innerFunction(func){}
+    Matrix exactLineSearch(Matrix x,double precision){
+        // cout<<"OKAY\n";
+        // Matrix::printMatrix(x);
+        Matrix df=innerFunction.gradient(x);
+        if(Matrix::norm(df)<precision) return x;
+        return exactLineSearch(x-exactLineSearch_newtonMethod(x,1,df,precision/1000)*df,precision);
     }
     Matrix backtrack(Matrix x, double m,double alpha, double precision){
-        Matrix df=gradient(x);
-        double hDoubled=Matrix::normDoubled(hessian(x));
+        Matrix df=innerFunction.gradient(x);
+        double hDoubled=Matrix::normDoubled(innerFunction.hessian(x));
         double expected=m*hDoubled;
         double t=1;
         Loop:
         Matrix y=x-m*t*df;
-        double diff=Matrix::normDoubled(func(y)-func(x));
-        if(diff>expected){
+        double diff=Matrix::normDoubled(innerFunction.func(y)-innerFunction.func(x));
+        if(diff>=expected){
             t=alpha*t;
             goto Loop;
         }
@@ -259,21 +265,23 @@ class GradientDescent{
 };
 
 int main(){
-    vector<vector<double>> a{{1,2},{3,4}};
-    Matrix x(a);
-    Matrix::printMatrix(Matrix::det(x));
+    // vector<vector<double>> a{{1,2},{3,4}};
+    // Matrix x(a);
+    // Matrix::printMatrix(-x);
+    // return 0;
     // Matrix::printMatrix(2*x);
     // Matrix::printMatrix(x*2);
     // return 0;
-    // GradientDescent g(
-    //     [](Matrix x)->Matrix{return pow((x[0][0]-4),2)+pow((x[0][1]-6),2);},
-    //     [](Matrix x)->Matrix{return vector<vector<double>>{{2*(x[0][0]-4),2*(x[0][1]-6)}};},
-    //     [](Matrix x)->Matrix{return 4;},
-    //     1
-    // );
-    // try{
-    // Matrix::printMatrix(g.backtrack(Matrix(vector<vector<double>>(1,vector<double>{-1.333,-11.2312})),0.5,0.75,0.1));
-    // } catch(exception e){
-    //     cout<<e.what();
-    // }
+    GradientDescent g(Func<Matrix>(
+        [](Matrix x)->Matrix{return pow((x[0][0]-4),2)+pow((x[1][0]-6),2);},
+        [](Matrix x)->Matrix{return vector<vector<double>>{{2*(x[0][0]-4)},{2*(x[1][0]-6)}};},
+        [](Matrix x)->Matrix{return vector<vector<double>>{{2,0},{0,2}};}
+    )
+    );
+    try{
+    Matrix::printMatrix(g.backtrack(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.5,0.75,0.1));
+    Matrix::printMatrix(g.exactLineSearch(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.1));
+    } catch(const exception& e){
+        cout<<e.what();
+    }
 }
