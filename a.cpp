@@ -1,3 +1,5 @@
+//Hi, as I was coding this, I realized I cannot handle all the exceptions nor have the time to.
+//So be warned.
 #include <bits/stdc++.h>
 using namespace std;
 class Matrix{
@@ -35,6 +37,14 @@ class Matrix{
         // this->dimX=a.size();
         // this->dimY=a[0].size();
         // this->a=a;
+    }
+    bool containsNaN(){
+        for(int i=0;i<this->dimX;i++){
+            for(int j=0;j<this->dimY;j++){
+                if(isinf(this->a[i][j])) return true;
+            }
+        }
+        return false;
     }
     Matrix minor(int m,int n)const{
         if(m<0||n<0||m>=dimX||n>=dimY) return *this;
@@ -103,7 +113,7 @@ class Matrix{
             return x[0][0];
         }
         if(!x.isSquare()) throw invalid_argument("Matrix: Trying to get determinant of non square matrix");
-        int sum=0;
+        double sum=0;
         for(int i=0;i<x.dimY;i++){
             sum+=x[0][i]*(i%2==1?-1:1)*det(x.minor(0,i));
         }
@@ -228,7 +238,6 @@ class Func{
 //     }
 // };
 class Descent{
-    Func<Matrix> innerFunction;
     //WARNING: This might end up being not the correct minimizer t, but that's the limitation of Exact Line Search.
     double exactLineSearch_newtonMethod(Matrix x,double t, Matrix d, double precision){
         Matrix df=-Matrix::transpose(innerFunction.gradient(x-t*d))*d;
@@ -241,6 +250,7 @@ class Descent{
         }
     }
     public:
+    Func<Matrix> innerFunction;
     bool isDescentDirection(Matrix x,Matrix d){
         if(!Matrix::isSameDimension(x,d)) throw invalid_argument("Descent: Descent direction is not of the same dimension as x");
         return Matrix::det(Matrix::transpose(x)*d)<0;
@@ -281,6 +291,7 @@ class Descent{
         return newtonMethod_pure(x1,precision);
     }
     Matrix newtonMethod_lineSearch(Matrix x,double precision){
+        cout<<"----\n";
         Matrix df=innerFunction.gradient(x);
         if(Matrix::norm(df)<precision) return x;
         Matrix Hf=innerFunction.hessian(x);
@@ -290,7 +301,9 @@ class Descent{
             else return newtonMethod_lineSearch(x1,precision);
         }
         Matrix direction=Matrix::inverse(Hf)*df;
+        Matrix::printMatrix(Matrix::inverse(Hf));
         double t= exactLineSearch_newtonMethod(x,1,direction,precision/10);
+        cout<<"OKE\n";
         Matrix x1=x-t*direction;
         return newtonMethod_lineSearch(x1,precision);
     }
@@ -314,30 +327,42 @@ class Descent{
         return newtonMethod_backtrack(x1,alpha,precision);
     }
 };
-
+#define p 10
 int main(){
-    // vector<vector<double>> a{{1,2},{3,4}};
-    // Matrix x(a);
-    // Matrix::printMatrix(Matrix::inverse(a));
-    // Matrix::printMatrix(Matrix::inverse(a)*a);
-    // Matrix::printMatrix(a*Matrix::inverse(a));
-    // return 0;
-    // Matrix::printMatrix(2*x);
-    // Matrix::printMatrix(x*2);
-    // return 0;
     Descent g(Func<Matrix>(
-        [](Matrix x)->Matrix{return pow((x[0][0]-4),2)+pow((x[1][0]-6),2);},
-        [](Matrix x)->Matrix{return vector<vector<double>>{{2*(x[0][0]-4)},{2*(x[1][0]-6)}};},
-        [](Matrix x)->Matrix{return vector<vector<double>>{{2,0},{0,2}};}
+        [](Matrix x)->Matrix{return -9*x[0][0]-10*x[1][0]+p*(-log(100-x[0][0]-x[1][0])-log(x[0][0])-log(x[1][0])-log(50-x[0][0]+x[1][0]));},
+        [](Matrix x)->Matrix{return vector<vector<double>>{
+            {-9+p*(1/(100-x[0][0]-x[1][0])-1/x[0][0]+1/(5-x[0][0]+x[1][0]))},
+            {-10+p*(1/(100-x[0][0]-x[1][0]-1/x[1][0]-1/(5-x[0][0]+x[1][0])))}
+        };},
+        [](Matrix x)->Matrix{return p*Matrix(vector<vector<double>>{
+            {1/pow(100-x[0][0]-x[1][0],2)+1/pow(x[1][0],2)+1/pow(50-x[0][0]+x[1][0],2),
+            1/pow(100-x[0][0]-x[1][0],2)-1/pow(50-x[0][0]+x[1][0],2)},
+            {1/pow(100-x[0][0]-x[1][0],2)-1/pow(50-x[0][0]+x[1][0],2),
+            1/pow(100-x[0][0]-x[1][0],2)+1/pow(x[1][0],2)+1/pow(50-x[0][0]+x[1][0],2)}
+        });
+        }
     )
     );
     try{
-    // Matrix::printMatrix(g.GradientDescent_backtrack(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.5,0.75,0.1));
-    // Matrix::printMatrix(g.GradientDescent_exactLineSearch(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.1));
-    // Matrix::printMatrix(g.newtonMethod_pure(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.5));
-    Matrix::printMatrix(g.newtonMethod_lineSearch(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.5));
-    Matrix::printMatrix(g.newtonMethod_backtrack(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.25,0.5));
+    Matrix::printMatrix(g.newtonMethod_pure(Matrix(vector<vector<double>>{{8},{90}}),0.5));
+    // Matrix::printMatrix(g.newtonMethod_backtrack(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.25,0.5));
     } catch(const exception& e){
         cout<<e.what();
     }
+    // Descent g(Func<Matrix>(
+    //     [](Matrix x)->Matrix{return pow((x[0][0]-4),2)+pow((x[1][0]-6),2);},
+    //     [](Matrix x)->Matrix{return vector<vector<double>>{{2*(x[0][0]-4)},{2*(x[1][0]-6)}};},
+    //     [](Matrix x)->Matrix{return vector<vector<double>>{{2,0},{0,2}};}
+    // )
+    // );
+    // try{
+    // // Matrix::printMatrix(g.GradientDescent_backtrack(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.5,0.75,0.1));
+    // // Matrix::printMatrix(g.GradientDescent_exactLineSearch(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.1));
+    // // Matrix::printMatrix(g.newtonMethod_pure(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.5));
+    // Matrix::printMatrix(g.newtonMethod_lineSearch(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.5));
+    // Matrix::printMatrix(g.newtonMethod_backtrack(Matrix(vector<vector<double>>{{-1.333},{-11.2312}}),0.25,0.5));
+    // } catch(const exception& e){
+    //     cout<<e.what();
+    // }
 }
