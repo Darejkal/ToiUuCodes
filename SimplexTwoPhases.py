@@ -1,3 +1,6 @@
+# Warning: Hàm chooseStarter bị sai nếu trong trường hợp cơ sở của phương án cực biên tìm được có chứa vector giả.
+# Warning: Hàm giải thiếu trường hợp nghiệm bị suy biến.
+# I don't have time to fix them so beware :).
 from dataclasses import dataclass
 import numpy as np
 import numpy.typing as npt
