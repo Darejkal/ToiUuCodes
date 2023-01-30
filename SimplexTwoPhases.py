@@ -34,7 +34,10 @@ def SimplexAlgorithm_chooseStarter(C,A,b):
         newA[i]=newA[i]+temp
         temp[i]=0.0
         newX[n+i,0]=b[i,0]
-    return np.transpose(np.array([SimplexAlgorithm_withStarter(newC,np.array(newA),b,newX,False)[0][0:n,0]]))
+    temp=SimplexAlgorithm_withStarter(newC,np.array(newA),b,newX,False)
+    if(temp[1]!=0):
+        raise Exception("Function doesn't have any solutions")
+    return np.transpose(np.array([temp[0][0:n,0]]))
 # return a tuple of (list of A_k,list of A_j) satisfying x_k=0,x_j!=0
 def SimplexAlgorithm_Extreme_filterCorrespondingColumn(A:npt.NDArray[np.float16],x:npt.NDArray[np.float16])->tuple[npt.NDArray[np.float16],npt.NDArray[np.float16]]:
     neqB:list[npt.NDArray[np.float16]]=[]
