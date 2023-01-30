@@ -34,7 +34,7 @@ def SimplexAlgorithm_chooseStarter(C,A,b):
         newA[i]=newA[i]+temp
         temp[i]=0.0
         newX[n+i,0]=b[i,0]
-    return np.transpose(np.array([SimplexAlgorithm_withStarter(newC,np.array(newA),b,newX)[0][0:n,0]]))
+    return np.transpose(np.array([SimplexAlgorithm_withStarter(newC,np.array(newA),b,newX,False)[0][0:n,0]]))
 # return a tuple of (list of A_k,list of A_j) satisfying x_k=0,x_j!=0
 def SimplexAlgorithm_Extreme_filterCorrespondingColumn(A:npt.NDArray[np.float16],x:npt.NDArray[np.float16])->tuple[npt.NDArray[np.float16],npt.NDArray[np.float16]]:
     neqB:list[npt.NDArray[np.float16]]=[]
@@ -73,7 +73,7 @@ def SimplexAlgorithm_printState(Package:SimplexAlgorithmPackage):
         SimplexBoard.append([Package.C[0,i].astype(float),f"A{i+1}"]+np.ndarray.tolist(Package.Z[:,i]))
     SimplexBoard.append(["","Phi"]+np.ndarray.tolist(Package.Phi)[0])
     print(tabulate(np.ndarray.tolist(np.transpose(np.array(SimplexBoard)))+[[""]*len(FinalLine)]+[FinalLine]))
-def SimplexAlgorithm_inner(Package:SimplexAlgorithmPackage):
+def SimplexAlgorithm_inner(Package:SimplexAlgorithmPackage,printOut:bool):
     n=np.shape(Package.Delta)[1]
     for k in range(n):
         if(Package.Delta[0,k]>0):
@@ -90,7 +90,8 @@ def SimplexAlgorithm_inner(Package:SimplexAlgorithmPackage):
                 raise Exception("Function doesn't have any solutions")
             
             Package.Phi=np.array([phis])
-            SimplexAlgorithm_printState(Package)
+            if(printOut):
+                SimplexAlgorithm_printState(Package)
             Package.C_B[0,minj]=Package.C[0,k]
             Package.B_Index[0,minj]=k
             Package.X_B[minj,0]=Package.X_B[minj,0]/Package.Z[minj,k]
@@ -105,10 +106,11 @@ def SimplexAlgorithm_inner(Package:SimplexAlgorithmPackage):
             Package.iter=Package.iter+1
             # SimplexAlgorithm_printState(Package)
             # return
-            return SimplexAlgorithm_inner(Package)
+            return SimplexAlgorithm_inner(Package,printOut)
     temp=["" for i in range(np.shape(Package.Phi)[1])]
     Package.Phi=np.array([temp])
-    SimplexAlgorithm_printState(Package)
+    if(printOut):
+        SimplexAlgorithm_printState(Package)
     sol=[0.0 for i in range(n)]
     for i in range(np.shape(Package.X_B)[0]):
         sol[Package.B_Index[0,i]]=Package.X_B[i,0]
@@ -116,7 +118,7 @@ def SimplexAlgorithm_inner(Package:SimplexAlgorithmPackage):
          
                 
 
-def SimplexAlgorithm_withStarter(C,A,b,x):
+def SimplexAlgorithm_withStarter(C,A,b,x,printOut=True):
     """
         C is a 1xn matrix\\
         A is a mxn matrix\\
@@ -135,14 +137,14 @@ def SimplexAlgorithm_withStarter(C,A,b,x):
     X_B=np.transpose(SimplexAlgorithm_Extreme_filterCorrespondingColumn(np.transpose(x),x)[0])
     # Phi is first initialized as B_Index (only as a placeholder) 
     Package= SimplexAlgorithmPackage(C,B_Index,Z,B_Index,Delta,f,C_B,X_B,1)
-    return SimplexAlgorithm_inner(Package)
+    return SimplexAlgorithm_inner(Package,printOut)
 
 def SimplexAlgorithm(C,A,b):
     return SimplexAlgorithm_withStarter(C,A,b,SimplexAlgorithm_chooseStarter(C,A,b))
 C=np.array([[-2.0,2,1,3,0,1]])
 A=np.array([[-1.0,2,2,0,1,0],[1,1,1,0,0,1],[2,0,2,1,0,0]])
 b=np.transpose(np.array([[4.0,5,7]]))
-x=np.transpose(np.array([[0.0,0,0,7,4,5]]))
+# x=np.transpose(np.array([[0.0,0,0,7,4,5]]))
 SimplexAlgorithm(C,A,b)
     
     
